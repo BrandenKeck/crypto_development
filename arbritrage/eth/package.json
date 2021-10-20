@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@ethersproject/address": "^5.4.0",
+    "@ethersproject/contracts": "^5.4.0",
+    "@ethersproject/providers": "^5.4.0",
+    "@ethersproject/solidity": "^5.4.0",
+    "@uniswap/sdk": "^3.0.3",
+    "ethers": "^5.4.0"
+  }
+}
