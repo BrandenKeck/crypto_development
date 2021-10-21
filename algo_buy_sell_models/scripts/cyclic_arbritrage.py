@@ -1,10 +1,17 @@
+# Move up a level in the directory
+# REMOVE IF RUNNING THIS SCRIPT INDEPENDENT OF THIS PROJECT
+import sys
+sys.path.append("..")
+
 # Imports
 import json, time, random
 from algosdk.v2client import algod
 from tinyman.v1.client import TinymanClient
 
+# A class to monitor cyclic swaps
 class cyclic_swap:
 
+    # Init by setting slippage
     def __init__(self, slips=0.005):
 
         # Import APIs and SDKs
@@ -12,13 +19,13 @@ class cyclic_swap:
         self.algod_client = self.load_algod_client()
         self.tinyman = TinymanClient(self.algod_client, 350338509)
 
-        # Set assets for the cyclic swap
+        # Set swap parameters
         self.asset1 = None
         self.asset2 = None
         self.asset3 = None
         self.slips = slips
 
-    # Execute a Cyclic Swap
+    # Execute a Cyclic Swap (Must set_assets first)
     def execute(self, amount):
         try:
             amt_out1 = self.swap(amount, self.asset1, self.asset2, self.slips)
@@ -31,7 +38,7 @@ class cyclic_swap:
 
         print(result)
 
-    # Swap function wrapper
+    # Swap function wrapper, calculate swap price with tinyman SDK
     def swap(self, amount, asset1, asset2, slips):
         amt_in = asset1(int(amount * 10**asset1.decimals))
         pool = self.tinyman.fetch_pool(asset1, asset2)
@@ -39,7 +46,7 @@ class cyclic_swap:
         amt_out = quote.amount_out_with_slippage
         return amt_out.decimal_amount
 
-    # Set New Assets
+    # Set Assets for the cyclic swap class
     def set_assets(self, asset1, asset2, asset3):
         self.asset1 = self.tinyman.fetch_asset(asset1)
         self.asset2 = self.tinyman.fetch_asset(asset2)
@@ -47,7 +54,7 @@ class cyclic_swap:
 
     # Get API Key from External File
     def load_api_key(self):
-        f = open('keys.json',)
+        f = open('../keys.json',)
         keys = json.load(f)
         f.close()
         return keys['algod_token_1']
@@ -60,7 +67,7 @@ class cyclic_swap:
         algod_client = algod.AlgodClient(algod_token, algod_address, algod_headers)
         return algod_client
 
-# Fetch assets / Asset IDs from algo explorer
+# Asset IDs from algo explorer
 print("\r")
 assets = {
     "ALGO": 0,
@@ -76,6 +83,8 @@ assets = {
     "CHOICE": 297995609,
     "AWT": 233939122
 }
+
+# Create a swapper and monitor random triplets
 swapper = cyclic_swap(slips = 0)
 while True:
     ness = random.sample(list(assets), 3)

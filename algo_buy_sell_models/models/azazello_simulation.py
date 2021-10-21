@@ -1,3 +1,8 @@
+# Move up a level in the directory
+# REMOVE IF RUNNING THIS SCRIPT INDEPENDENT OF THIS PROJECT
+import sys
+sys.path.append("..")
+
 # Imports
 import json, time
 from datetime import datetime
@@ -50,7 +55,7 @@ class azazello_sim:
 
     # Get API Key from External File
     def load_keys(self):
-        f = open('keys.json',)
+        f = open('../keys.json',)
         keys = json.load(f)
         f.close()
         return keys

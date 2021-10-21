@@ -1,3 +1,8 @@
+# Move up a level in the directory
+# REMOVE IF RUNNING THIS SCRIPT INDEPENDENT OF THIS PROJECT
+import sys
+sys.path.append("..")
+
 # Imports
 import json, time
 from datetime import datetime
@@ -5,7 +10,7 @@ from decimal import Decimal
 from algosdk import mnemonic
 
 # Load JSON keys (untracked in repo for security)
-f = open('keys.json',)
+f = open('../keys.json',)
 keys = json.load(f)
 f.close()
 

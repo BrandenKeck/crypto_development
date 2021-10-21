@@ -1,8 +1,13 @@
+# Move up a level in the directory
+# REMOVE IF RUNNING THIS SCRIPT INDEPENDENT OF THIS PROJECT
+import sys
+sys.path.append("..")
+
 # Imports and JSON keys (API key untracked in repo for security)
 import json, time
 from datetime import datetime
 from decimal import Decimal
-f = open('keys.json',)
+f = open('../keys.json',)
 keys = json.load(f)
 f.close()
 
@@ -27,7 +32,7 @@ ALGO_USDC = client.fetch_pool(ALGO, USDC)
 CHOICE_ALGO = client.fetch_pool(CHOICE, ALGO) # Two Part Swap CHOICE -> ALGO -> USDC
 CHOICE_USDC = client.fetch_pool(CHOICE, USDC) # Direct Comparison CHOICE -> USDC
 
-# Take a loog at some swaps
+# Loop for constant price updates
 while True:
 
     # Calculate ALGO -> USDC Swap

@@ -75,7 +75,7 @@ class AssetAmount:
 
     @property
     def decimal_amount(self):
-        return Decimal(self.amount) / Decimal(10**self.asset.decimals)
+        return float(self.amount) / float(10**self.asset.decimals)
 
     def __repr__(self) -> str:
         amount = Decimal(self.amount) / Decimal(10**self.asset.decimals)
