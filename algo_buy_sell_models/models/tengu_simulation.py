@@ -61,13 +61,17 @@ class tengu_sim:
                 asset_out = self.swap(usdc_in, self.usdc, self.asset, self.slips)
                 self.wallet["USDC"] = self.wallet["USDC"] - usdc_in
                 self.wallet["ASSET"] = self.wallet["ASSET"] + asset_out
+                self.u2a_baseline = u2a_percent_change
                 self.num_swaps = self.num_swaps + 1
+                print(f'Swapped {usdc_in} USDC for {asset_out} {self.asset.name} given rate change {u2a_percent_change}')
             if a2u_percent_change > self.st:
                 asset_in = self.ats
                 usdc_out = self.swap(asset_in, self.asset, self.usdc, self.slips)
                 self.wallet["USDC"] = self.wallet["USDC"] + usdc_out
                 self.wallet["ASSET"] = self.wallet["ASSET"] - asset_in
+                self.a2u_baseline = a2u_percent_change
                 self.num_swaps = self.num_swaps + 1
+                print(f'Swapped {asset_in} {self.asset.name} for {usdc_out} USDC given rate change {a2u_percent_change}')
 
             # Print Results and Wait Timestep
             now = datetime.now()
