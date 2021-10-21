@@ -9,7 +9,7 @@ f.close()
 # Get Algo Client / Using purestake; supplement your own API key for the algod_token
 from algosdk.v2client import algod
 algod_address = "https://mainnet-algorand.api.purestake.io/ps2"
-algod_token = keys['algod_token_2']
+algod_token = keys['algod_token_1']
 headers = {"X-API-Key": algod_token}
 algod_client = algod.AlgodClient(algod_token, algod_address, headers)
 

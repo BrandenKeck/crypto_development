@@ -14,7 +14,7 @@ class TinymanClient:
         self.validator_app_id = validator_app_id
         self.assets_cache = {}
         self.user_address = user_address
-    
+
     def fetch_pool(self, asset1, asset2, fetch=True):
         from .pools import Pool
         return Pool(self, asset1, asset2, fetch=fetch)
@@ -28,10 +28,7 @@ class TinymanClient:
 
 
     def submit(self, transaction_group, wait=False):
-        try:
-            txid = self.algod.send_transactions(transaction_group.signed_transactions)
-        except AlgodHTTPError as e:
-            raise Exception(json.loads(e.args[0])['message']) from None
+        txid = self.algod.send_transactions(transaction_group.signed_transactions)
         if wait:
             return wait_for_confirmation(self.algod, txid)
         return {'txid': txid}
@@ -70,7 +67,7 @@ class TinymanClient:
                 pools[pool_address][asset] = AssetAmount(asset, value)
 
         return pools
-    
+
     def is_opted_in(self, user_address=None):
         user_address = user_address or self.user_address
         account_info = self.algod.account_info(user_address)
@@ -93,4 +90,3 @@ class TinymanMainnetClient(TinymanClient):
         if algod_client is None:
             algod_client = AlgodClient('', 'https://api.algoexplorer.io', headers={'User-Agent': 'algosdk'})
         super().__init__(algod_client, validator_app_id=MAINNET_VALIDATOR_APP_ID, user_address=user_address)
-

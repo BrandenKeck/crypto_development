@@ -20,15 +20,15 @@ algod_client = algod.AlgodClient(algod_token, algod_address, headers)
 from tinyman.v1.client import TinymanClient
 client = TinymanClient(algod_client, 350338509)
 
-# Create a Trade
-CHOICE = client.fetch_asset(297995609)
-ALGO = client.fetch_asset(0)
-CHOICE_ALGO = client.fetch_pool(CHOICE, ALGO)
-quote_CHOICE_ALGO = CHOICE_ALGO.fetch_fixed_input_swap_quote(ALGO(1000), slippage=0.001)
-tx_CHOICE_ALGO = CHOICE_ALGO.prepare_swap_transactions_from_quote(quote_CHOICE_ALGO, swapper_address=keys['address'])
+# A function to determine how much of an asset is in the wallet
+def get_asset_decimal_amount(asset_id):
+    decimals = algod_client.asset_info(asset_id)['params']['decimals']
+    wallet = algod_client.account_info(keys['address'])
+    asset = next(item for item in wallet['assets'] if item["asset-id"] == asset_id)
+    return asset['amount'] * 10**(-decimals)
 
-# Sign the transaction
-private_key = mnemonic.to_private_key(keys['mnemonic'])
-tx_CHOICE_ALGO.sign_with_private_key(keys['address'], private_key)
-result = client.submit(tx_CHOICE_ALGO, wait=True)
-print(result)
+
+
+
+choice = get_asset_decimal_amount(297995609)
+print(choice)
