@@ -64,9 +64,8 @@ class azazello_sim:
     def load_algod_clients(self):
         clients = []
         algod_address = "https://mainnet-algorand.api.purestake.io/ps2"
-        for i in range(1,4):
-            if i == 2: continue
-            algod_token = self.keys["algod_token_"+str(i)]
+        for key in self.keys["algod_tokens"]:
+            algod_token = key
             algod_headers = {"X-API-Key": algod_token}
             algod_client = algod.AlgodClient(algod_token, algod_address, algod_headers)
             clients.append(algod_client)

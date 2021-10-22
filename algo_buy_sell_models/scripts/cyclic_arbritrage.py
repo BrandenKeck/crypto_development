@@ -57,7 +57,7 @@ class cyclic_swap:
         f = open('../keys.json',)
         keys = json.load(f)
         f.close()
-        return keys['algod_token_1']
+        return keys["algod_tokens"][0]
 
     # Load Algod Client
     def load_algod_client(self):

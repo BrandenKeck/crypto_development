@@ -14,7 +14,7 @@ f.close()
 # Get Algo Client / Using purestake; supplement your own API key for the algod_token
 from algosdk.v2client import algod
 algod_address = "https://mainnet-algorand.api.purestake.io/ps2"
-algod_token = keys['algod_token_1']
+algod_token = keys["algod_tokens"][0]
 headers = {"X-API-Key": algod_token}
 algod_client = algod.AlgodClient(algod_token, algod_address, headers)
 
@@ -39,17 +39,26 @@ while True:
     quote_ALGO_USDC = ALGO_USDC.fetch_fixed_input_swap_quote(ALGO(1_000_000), slippage=0)
     algo_out = quote_ALGO_USDC.amount_out_with_slippage
     algo_price = Decimal(algo_out.amount) / Decimal(10**algo_out.asset.decimals)
+    time.sleep(5)
 
     # Calculate CHOICE -> ALGO Swap
     quote_CHOICE_ALGO = CHOICE_ALGO.fetch_fixed_input_swap_quote(CHOICE(100), slippage=0)
     choice_out = quote_CHOICE_ALGO.amount_out_with_slippage
     choice_out_qty = Decimal(choice_out.amount) / Decimal(10**choice_out.asset.decimals)
     choice_price = algo_price * choice_out_qty
+    time.sleep(5)
 
     # Calculate CHOICE -> USDC Swap to compare
     quote_CHOICE_USDC = CHOICE_USDC.fetch_fixed_input_swap_quote(CHOICE(100), slippage=0)
     direct_choice_out = quote_CHOICE_USDC.amount_out_with_slippage
     direct_choice_price = Decimal(direct_choice_out.amount) / Decimal(10**direct_choice_out.asset.decimals)
+    time.sleep(5)
+
+    # Calculate USDC -> CHOICE Swap and invert the rate
+    quote_USDC_CHOICE = CHOICE_USDC.fetch_fixed_input_swap_quote(USDC(1_000_000), slippage=0)
+    inverse_choice_out = quote_USDC_CHOICE.amount_out_with_slippage
+    inverse_choice_price = 1 / (Decimal(inverse_choice_out.amount) / Decimal(10**inverse_choice_out.asset.decimals))
+    time.sleep(5)
 
 
     # Get timestamp
@@ -60,8 +69,8 @@ while True:
     print(f'\r')
     print(f'[{current_time}]')
     print(f'ALGO -> USDC (Direct Swap): {algo_price}')
+    print(f'CHOICE -> ALGO (Direct Swap): {choice_out_qty}')
     print(f'CHOICE -> ALGO -> USDC Rate: {choice_price}')
     print(f'CHOICE -> USDC (Direct Swap): {direct_choice_price}')
-
-    # Wait ten seconds before checking again
-    time.sleep(10)
+    print(f'USDC -> CHOICE (Direct Swap): {inverse_choice_out}')
+    print(f'CHOICE -> USDC (Inverse Rate Calculation): {inverse_choice_price}')
