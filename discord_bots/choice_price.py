@@ -95,9 +95,9 @@ async def on_ready():
             # Reset Ping Clock
             pings = 0
 
-        # Update clock and bot status every five seconds
-        pings = pings + 1
-        await bot.edit(nick = f'${choice_price}')
+    # Update clock and bot status every five seconds
+    await bot.edit(nick = f'${choice_price}')
+    pings = pings + 1
 
 # Run the client and commander
 discord_commander.run(keys['bot_token'])
