@@ -1,5 +1,5 @@
 # Imports
-import os, json, time
+import json, time
 from datetime import datetime
 from algosdk.v2client import algod
 from tinyman.v1.client import TinymanClient
@@ -13,7 +13,6 @@ f.close()
 
 # Create a discord client
 dicord_client = discord.Client()
-discord_commander = commands.Bot(command_prefix="!")
 
 # Get Algo Client / Using purestake; supplement your own API key for the algod_token
 algod_address = 'https://mainnet-algorand.api.purestake.io/ps2'
@@ -39,29 +38,14 @@ def get_prices():
     choice_price = round(algo_price * choice_out, 4)
     return choice_price
 
-# Command to show the price immediately
-@discord_commander.command()
-async def choice_price(ctx):
-    sender = str(ctx.author).split("#")[0]
-    choice_price = get_prices()
-    await ctx.send(
-        f'Hello There, {sender}\n' +
-        f'The current price of Choice Coin is **${choice_price}**\n' +
-        f':rocket: :rocket: :rocket: BALLS DEEP :rocket: :rocket: :rocket:'
-    )
-
 # Create a client event
 @dicord_client.event
 async def on_ready():
 
-    # Establish Discord Connections
-    guild = dicord_client.get_guild(805183939148513311)
-    bot_channel = guild.get_channel(901082610334306345)
-    bot = guild.me
-
     # Get some prices before kicking off the update loop
     choice_price = get_prices()
     choice_baseline = choice_price
+    baseline_change = 0
 
     # Begin loop
     pings = 0
@@ -76,13 +60,16 @@ async def on_ready():
 
             if abs(baseline_change) > 10:
 
+                # Post to crypto guild specifically
+                crypto_guild = dicord_client.get_guild(805183939148513311)
+                crypto_bot_channel = crypto_guild.get_channel(901082610334306345)
+
                 # Send ALGO / CHOICE price to discord on 10% change
-                await bot_channel.send(
+                await crypto_bot_channel.send(
                     f"Hello Everybody!\n" +
                     f"It's been awhile since I've checked in!\n" +
-                    f"There's been some movement in Choice Coin, a change of **{baseline_change}%**!\n"
-                    f'The current price of Choice Coin is **${choice_price}**\n' +
-                    f':rocket: :rocket: :rocket: BALLS DEEP :rocket: :rocket: :rocket:'
+                    f"There's been some movement in Choice Coin, a change of **{round(baseline_change, 2)}%**!\n"
+                    f'The current price of Choice Coin is **${choice_price}** :rocket:'
                 );
                 choice_baseline = choice_price
 
@@ -90,15 +77,20 @@ async def on_ready():
             print(f'\r')
             now = datetime.now()
             current_time = now.strftime("%d-%b-%Y %H:%M:%S")
-            print(f'[{current_time}] CHOICE = ${choice_price}')
+            print(f'[{current_time}] CHOICE = ${choice_price} with baseline_change of {round(baseline_change, 2)}')
 
             # Reset Ping Clock
             pings = 0
 
-    # Update clock and bot status every five seconds
-    await bot.edit(nick = f'${choice_price}')
-    pings = pings + 1
+        # Updat bot status
+        for guild in dicord_client.guilds:
+            curr_guild = dicord_client.get_guild(guild.id)
+            curr_bot = curr_guild.me
+            await curr_bot.edit(nick = f'${choice_price}')
+
+        # Every five updates add a ping
+        pings = pings + 1
+        time.sleep(10)
 
 # Run the client and commander
-discord_commander.run(keys['bot_token'])
 dicord_client.run(keys['bot_token'])
