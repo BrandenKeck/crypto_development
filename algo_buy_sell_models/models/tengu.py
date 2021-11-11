@@ -156,7 +156,7 @@ class tengu:
         pool = self.tinyman_clients[self.get_clidex()].fetch_pool(asset1, asset2)
         quote = pool.fetch_fixed_input_swap_quote(amt_in, slippage=slips)
         amt_out = quote.amount_out_with_slippage
-        return amt_out.decimal_amount
+        return float(amt_out.amount) / float(10**amt_out.asset.decimals)
 
     # Function to calculate % change in asset rates
     def get_rates(self):

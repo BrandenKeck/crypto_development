@@ -32,7 +32,8 @@ while True:
 
     # Calculate CHOICE -> USDC Swap to compare
     quote_LION_USDC = LION_USDC.fetch_fixed_input_swap_quote(LION(10_000), slippage=0)
-    lion_price = quote_LION_USDC.amount_out_with_slippage.decimal_amount
+    lion_price = quote_LION_USDC.amount_out_with_slippage
+    lion_price = float(lion_price.amount) / float(10**lion_price.asset.decimals)
     time.sleep(5)
 
     # Get timestamp

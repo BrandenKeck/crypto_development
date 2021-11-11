@@ -44,7 +44,7 @@ class cyclic_swap:
         pool = self.tinyman.fetch_pool(asset1, asset2)
         quote = pool.fetch_fixed_input_swap_quote(amt_in, slippage=slips)
         amt_out = quote.amount_out_with_slippage
-        return amt_out.decimal_amount
+        return float(amt_out.amount) / float(10**amt_out.asset.decimals)
 
     # Set Assets for the cyclic swap class
     def set_assets(self, asset1, asset2, asset3):

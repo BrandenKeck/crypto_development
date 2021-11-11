@@ -34,12 +34,14 @@ LION_USDC = tinyman.fetch_pool(LION, USDC)
 # Retrieve price of choice
 def get_prices():
     quote_ALGO_USDC = ALGO_USDC.fetch_fixed_input_swap_quote(ALGO(1_000_000), slippage=0)
-    algo_price = round(quote_ALGO_USDC.amount_out_with_slippage.decimal_amount, 4)
+    algo_price = float(quote_ALGO_USDC.amount_out_with_slippage.amount) / float(10**quote_ALGO_USDC.amount_out_with_slippage.asset.decimals)
+    algo_price = round(algo_price, 4)
     quote_CHOICE_ALGO = CHOICE_ALGO.fetch_fixed_input_swap_quote(CHOICE(100), slippage=0)
-    choice_out = quote_CHOICE_ALGO.amount_out_with_slippage.decimal_amount
+    choice_out = float(quote_CHOICE_ALGO.amount_out_with_slippage.amount) / float(10**quote_CHOICE_ALGO.amount_out_with_slippage.asset.decimals)
     choice_price = round(algo_price * choice_out, 4)
     quote_LION_USDC = LION_USDC.fetch_fixed_input_swap_quote(LION(10_000), slippage=0)
-    lion_price = round(quote_LION_USDC.amount_out_with_slippage.decimal_amount, 4)
+    lion_price = float(quote_LION_USDC.amount_out_with_slippage.amount) / float(10**quote_LION_USDC.amount_out_with_slippage.asset.decimals)
+    lion_price = round(lion_price, 4)
     return algo_price, choice_price, lion_price
 
 # Command to show the price immediately
