@@ -16,8 +16,8 @@ class tengu:
     def __init__(self,
                 asset1=0, asset2=31566704,              # Assets
                 slips=0.001, timestep=21,               # Trade Settings (in USD)
-                alpha=0.005, beta=0.020, gamma=0.400,   # Model Shape Params
                 Tmin=0, Tmax=500,                       # Model Buy/Sell Params (in USD)
+                alpha=0.005, beta=0.020, gamma=0.400,   # Model Shape Params
                 a1_swapsize = 100, a2_swapsize = 7000   # Set a price scale (in USD)
                 ):
 
@@ -102,7 +102,7 @@ class tengu:
                         self.a1toa2_baseline = self.test_swap(1, self.asset1, self.asset2, 0)
                         self.a2toa1_baseline = self.test_swap(1, self.asset2, self.asset1, 0)
                     print(swap_result)
-                else: print(f'Minimum Swap Not Achieved: {round(self.Tmin*self.usdc_to_asset1, 2)}')
+                else: print(f"Minimum Swap Not Achieved: {round(self.Tmin*self.usdc_to_asset1, 2)}")
 
             # Try Direction 2; Asset 2 -> Asset 1
             if self.heaviside(self.a2toa1_baseline_change):
@@ -129,12 +129,12 @@ class tengu:
                         self.a1toa2_baseline = self.test_swap(1, self.asset1, self.asset2, 0)
                         self.a2toa1_baseline = self.test_swap(1, self.asset2, self.asset1, 0)
                     print(swap_result)
-                else: print(f'Minimum Swap Not Achieved: {round(self.Tmin*self.usdc_to_asset2, 2)}')
+                else: print(f"Minimum Swap Not Achieved: {round(self.Tmin*self.usdc_to_asset2, 2)}")
 
             # Print Results and Wait Timestep
-            print(f'[{current_time}] ' +
-            f'{self.asset1.name}/{self.asset2.name} Baseline: {round(100*self.a1toa2_baseline_change,2)}% | ' +
-            f'{self.asset2.name}/{self.asset1.name} Baseline: {round(100*self.a2toa1_baseline_change,2)}%')
+            print(f"[{current_time}] " +
+            f"{self.asset1.name}/{self.asset2.name} Baseline: {round(100*self.a1toa2_baseline_change,2)}% | " +
+            f"{self.asset2.name}/{self.asset1.name} Baseline: {round(100*self.a2toa1_baseline_change,2)}%")
             time.sleep(self.dt)
 
 
@@ -144,8 +144,8 @@ class tengu:
             amt_in = asset1(int(amount * 10**asset1.decimals))
             pool = self.tinyman_clients[self.get_clidex()].fetch_pool(asset1, asset2)
             quote = pool.fetch_fixed_input_swap_quote(amt_in, slippage=slips)
-            tx = pool.prepare_swap_transactions_from_quote(quote, swapper_address=self.keys['address'])
-            tx.sign_with_private_key(self.keys['address'], mnemonic.to_private_key(self.keys['mnemonic']))
+            tx = pool.prepare_swap_transactions_from_quote(quote, swapper_address=self.keys["address"])
+            tx.sign_with_private_key(self.keys["address"], mnemonic.to_private_key(self.keys["mnemonic"]))
             swap_result = self.tinyman_clients[self.get_clidex()].submit(tx, wait=True)
         except: swap_result = "SWAP FAILURE"
         return swap_result
@@ -179,25 +179,25 @@ class tengu:
     def get_wallet_asset_amt(self, asset_id):
 
         # Retrieve Wallet Data
-        wallet = self.algod_clients[self.get_clidex()].account_info(self.keys['address'])
+        wallet = self.algod_clients[self.get_clidex()].account_info(self.keys["address"])
 
         # Handle ASAs
         if asset_id > 0:
-            asset_decimals = self.algod_clients[self.get_clidex()].asset_info(asset_id)['params']['decimals']
-            asset_position = next(item for item in wallet['assets'] if item["asset-id"] == asset_id)
-            asset_amt = asset_position['amount'] * 10**(-asset_decimals)
+            asset_decimals = self.algod_clients[self.get_clidex()].asset_info(asset_id)["params"]["decimals"]
+            asset_position = next(item for item in wallet["assets"] if item["asset-id"] == asset_id)
+            asset_amt = asset_position["amount"] * 10**(-asset_decimals)
 
         # Handle Algo
         else:
             asset_decimals = 6
-            asset_amt = wallet['amount'] * 10**(-asset_decimals)
+            asset_amt = wallet["amount"] * 10**(-asset_decimals)
 
         # Return Amount
         return asset_amt
 
     # Get API Key from External File
     def load_keys(self):
-        f = open('../keys.json',)
+        f = open("../keys.json",)
         keys = json.load(f)
         f.close()
         return keys
