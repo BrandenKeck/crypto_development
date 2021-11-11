@@ -1,2 +1,3 @@
 #!/bin/bash
-python3 -u ./algo_buy_sell_models/models/tengu.py > ./log/tengu.output &
+cd ~/crypto_development/algo_buy_sell_models/models
+python3 -u tengu.py > ~/crypto_development/log/tengu.output &
