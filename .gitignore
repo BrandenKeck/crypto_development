@@ -1,3 +1,4 @@
 eth_buy_sell_models/uniswap_scripts/keys.json
 algo_buy_sell_models/keys.json
 discord_bots/keys.json
+log/*
