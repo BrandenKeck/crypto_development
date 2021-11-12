@@ -245,6 +245,6 @@ class tengu:
         if x > -self.alpha: return False
         else: return True
 
-# Run with default ALGO/YLDY
+# Run with default settings
 tt = tengu()
 tt.run()
