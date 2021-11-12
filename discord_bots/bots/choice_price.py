@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands
 
 # Get bot tokens
-f = open('keys.json',)
+f = open('../keys.json',)
 keys = json.load(f)
 f.close()
 
@@ -44,8 +44,6 @@ async def on_ready():
 
     # Get some prices before kicking off the update loop
     choice_price = get_prices()
-    choice_baseline = choice_price
-    baseline_change = 0
 
     # Begin loop
     pings = 0
@@ -56,28 +54,12 @@ async def on_ready():
 
             # Tinyman call - every five minutes update the Choice price and Algo price
             choice_price = get_prices()
-            baseline_change = 100 * (choice_price - choice_baseline) / choice_baseline
-
-            if abs(baseline_change) > 10:
-
-                # Post to crypto guild specifically
-                crypto_guild = dicord_client.get_guild(805183939148513311)
-                crypto_bot_channel = crypto_guild.get_channel(901082610334306345)
-
-                # Send ALGO / CHOICE price to discord on 10% change
-                await crypto_bot_channel.send(
-                    f"Hello Everybody!\n" +
-                    f"It's been awhile since I've checked in!\n" +
-                    f"There's been some movement in Choice Coin, a change of **{round(baseline_change, 2)}%**!\n"
-                    f'The current price of Choice Coin is **${choice_price}** :rocket:'
-                );
-                choice_baseline = choice_price
 
             # Log Health Status - every five pings update console
             print(f'\r')
             now = datetime.now()
             current_time = now.strftime("%d-%b-%Y %H:%M:%S")
-            print(f'[{current_time}] CHOICE = ${choice_price} with baseline_change of {round(baseline_change, 2)}')
+            print(f'[{current_time}] CHOICE = ${choice_price}')
 
             # Reset Ping Clock
             pings = 0

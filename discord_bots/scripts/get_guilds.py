@@ -1,9 +1,10 @@
 # Imports
+import os
 import json, discord
 from discord.ext import commands
 
 # Get bot tokens
-f = open('keys.json',)
+f = open('../keys.json',)
 keys = json.load(f)
 f.close()
 
@@ -17,6 +18,8 @@ async def on_ready():
     # Establish Discord Connections
     for guild in dicord_client.guilds:
         print(guild.id)
+
+    os._exit(1)
 
 # Run the client and commander
 dicord_client.run(keys['bot_token'])

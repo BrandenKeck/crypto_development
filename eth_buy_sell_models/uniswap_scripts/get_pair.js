@@ -1,8 +1,8 @@
 // Imports
 const { ChainId, Fetcher, WETH, Route, Trade, TokenAmount, TradeType } = require ('@uniswap/sdk');
 const ethers = require('ethers');
-const keys = require('./keys.json');
-const tokens = require('./tokens.json');
+const keys = require('../keys.json');
+const tokens = require('../tokens.json');
 const chainId = ChainId.MAINNET;
 
 // Connection to Ether Node

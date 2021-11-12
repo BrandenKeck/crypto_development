@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands
 
 # Get bot tokens
-f = open('keys.json',)
+f = open('../keys.json',)
 keys = json.load(f)
 f.close()
 
