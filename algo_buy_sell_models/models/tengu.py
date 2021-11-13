@@ -17,7 +17,7 @@ class tengu:
                 asset1=0, asset2=31566704,              # Assets Settings
                 slips=0.001, timestep=21,               # General Settings
                 swap100 = 100, swapmin=0, swapmax=500,  # Swap Scale (in USD)
-                alpha=0.005, beta=0.020, gamma=0.400,   # Model Shape Params
+                alpha=0.020, beta=0.050, gamma=0.360,   # Model Shape Params
                 ):
 
         # Import APIs and SDKs
@@ -238,11 +238,11 @@ class tengu:
 
     # Simple Logistic Eqn Implementation
     def modified_logistic(self, x):
-        return 1 / (1 + ((1 - self.beta) / self.beta)**((-x - self.gamma)/(self.alpha - self.gamma)))
+        return 1 / (1 + ((1 - self.beta) / self.beta)**((x - self.gamma)/(self.alpha - self.gamma)))
 
     # Simple Heaviside Implementation
     def heaviside(self, x):
-        if x > -self.alpha: return False
+        if x < self.alpha: return False
         else: return True
 
 # Run with default settings
