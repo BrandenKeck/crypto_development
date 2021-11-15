@@ -15,9 +15,9 @@ class tengu:
 
     def __init__(self,
                 asset1=0, asset2=31566704,              # Assets Settings
-                slips=0.001, timestep=21,               # General Settings
-                swap100 = 100, swapmin=0, swapmax=500,  # Swap Scale (in USD)
-                alpha=0.020, beta=0.050, gamma=0.360,   # Model Shape Params
+                slips=0.001, timestep=180,               # General Settings
+                swapmin=0, swapmax=500,                 # Swap Scale (in USD)
+                alpha=0.015, beta=0.020, gamma=0.360,   # Model Shape Params
                 ):
 
         # Import APIs and SDKs
@@ -40,7 +40,6 @@ class tengu:
         self.gamma = gamma
 
         # Swap amount settings
-        self.swap100 = swap100
         self.swapmin = swapmin
         self.swapmax = swapmax
 
@@ -78,19 +77,11 @@ class tengu:
 
             # Try Direction 1; Asset 1 -> Asset 2
             if self.heaviside(self.a1toa2_baseline_change):
-                #a1_available = self.get_wallet_asset_amt(self.asset1.id)
+                a1_available = self.get_wallet_asset_amt(self.asset1.id)
                 px = self.modified_logistic(self.a1toa2_baseline_change)
-                if px * (self.swap100 * self.usdc_to_asset1) > self.swapmax * self.usdc_to_asset1:
-                    swap_result = self.live_swap(
-                        amount = self.swapmax * self.usdc_to_asset1,
-                        asset1 = self.asset1,
-                        asset2 = self.asset2,
-                        slips = self.slips
-                    )
-                    self.a1toa2_baseline = self.test_swap(1, self.asset1, self.asset2, 0)
-                    self.a2toa1_baseline = self.test_swap(1, self.asset2, self.asset1, 0)
-                    print(swap_result)
-                elif px * (self.swap100 * self.usdc_to_asset1)  > self.swapmin * self.usdc_to_asset1:
+                swap = px * (self.swapmax * self.usdc_to_asset1)
+                minswap = self.swapmin * self.usdc_to_asset1
+                if swap >= minswap and a1_available > swap:
                     swap_result = self.live_swap(
                         amount = px * (self.swap100 * self.usdc_to_asset1),
                         asset1 = self.asset1,
@@ -101,25 +92,17 @@ class tengu:
                         self.a1toa2_baseline = self.test_swap(1, self.asset1, self.asset2, 0)
                         self.a2toa1_baseline = self.test_swap(1, self.asset2, self.asset1, 0)
                     print(swap_result)
-                else: print(f"Minimum Swap Not Achieved: {round(self.swapmin*self.usdc_to_asset1, 2)}")
+                else: print(f"Attempted Swap Amount Invalid: {round(swap, 2)}")
 
             # Try Direction 2; Asset 2 -> Asset 1
             if self.heaviside(self.a2toa1_baseline_change):
-                #a2_available = self.get_wallet_asset_amt(self.asset2.id)
+                a2_available = self.get_wallet_asset_amt(self.asset2.id)
                 px = self.modified_logistic(self.a2toa1_baseline_change)
-                if px * (self.swap100 * self.usdc_to_asset2) > self.swapmax * self.usdc_to_asset2:
+                swap = px * (self.swapmax * self.usdc_to_asset2)
+                minswap = self.swapmin * self.usdc_to_asset2
+                if swap >= minswap and a2_available > swap:
                     swap_result = self.live_swap(
-                        amount = self.swapmax * self.usdc_to_asset2,
-                        asset1 = self.asset2,
-                        asset2 = self.asset1,
-                        slips = self.slips
-                    )
-                    self.a1toa2_baseline = self.test_swap(1, self.asset1, self.asset2, 0)
-                    self.a2toa1_baseline = self.test_swap(1, self.asset2, self.asset1, 0)
-                    print(swap_result)
-                elif px * (self.swap100 * self.usdc_to_asset2) > self.swapmin * self.usdc_to_asset2:
-                    swap_result = self.live_swap(
-                        amount = px * (self.swap100 * self.usdc_to_asset2),
+                        amount = px * (self.swapmax * self.usdc_to_asset2),
                         asset1 = self.asset2,
                         asset2 = self.asset1,
                         slips = self.slips
@@ -128,7 +111,7 @@ class tengu:
                         self.a1toa2_baseline = self.test_swap(1, self.asset1, self.asset2, 0)
                         self.a2toa1_baseline = self.test_swap(1, self.asset2, self.asset1, 0)
                     print(swap_result)
-                else: print(f"Minimum Swap Not Achieved: {round(self.swapmin*self.usdc_to_asset2, 2)}")
+                else: print(f"Attempted Swap Amount Invalid: {round(swap, 2)}")
 
             # Print Results and Wait Timestep
             print(f"[{current_time}] " +
