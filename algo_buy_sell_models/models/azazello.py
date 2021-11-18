@@ -1,6 +1,6 @@
 # Move up a level in the directory
 # REMOVE IF RUNNING THIS SCRIPT INDEPENDENT OF THIS PROJECT
-import sys
+import sys, json
 sys.path.append("..")
 
 # Imports
@@ -11,13 +11,20 @@ from algosdk import mnemonic
 from algosdk.v2client import algod
 from tinyman.v1.client import TinymanClient
 
+# AZAZELLO MODEL
+# Set up a collection of individual trade pairs (TENGU MODELS)
+# Manage the collection without restriction, executing all viable trades individually
+# Swap functionality and rate fetching handled at Azazello level / Swap sizes calculated individually at Tengu level
 class azazello:
 
-    def __init__(self, slips=0.001, timestep=720, default=True):
+    def __init__(self, slips=0.001, timestep=720, default_model=True,
+                load_model=False, save_model=True, model_file="ness.json"):
 
         # general params
         self.slips = slips
         self.dt = timestep
+        self.save_model = save_model
+        self.model_file = model_file
 
         # Import APIs and SDKs
         self.clidex = 0
@@ -29,7 +36,11 @@ class azazello:
         self.assets = dict()
         self.rates = dict()
         self.tengus = []
-        if default:
+
+        # Quick creation for models / load from file / from scratch with default settings
+        if load_model:
+            self.load_model_from_json()
+        elif default_model:
             self.add_tengu(0, 31566704) # ALGO / USDC
             self.add_tengu(0, 226701642) # ALGO / YLDY
             self.add_tengu(0, 27165954) # ALGO / PLANETS
@@ -95,8 +106,11 @@ class azazello:
                     print(swap_result)
 
                 # Print Update
-                print(f"{a1.name}/{a2.name} Baseline: {round(100*tt.a1toa2_baseline_change,2)}% | " +
-                f"{a1.name}/{a2.name} Baseline: {round(100*tt.a2toa1_baseline_change,2)}% -----\n")
+                print(f"{a1.name}->{a2.name} Baseline: {round(100*tt.a1toa2_baseline_change,2)}% | " +
+                f"{a2.name}->{a1.name} Baseline: {round(100*tt.a2toa1_baseline_change,2)}% -----\n")
+
+            # Save model if configured
+            if self.save_model: self.save_model_to_json()
 
             # Await next swap attempt
             time.sleep(self.dt)
@@ -225,6 +239,23 @@ class azazello:
     # Function to turn on USDC -> Asset rates for all assets
     def set_usdc_active(self):
 
+        # Add USDC if it's not in assets already
+        if 31566704 not in self.assets:
+            self.assets[31566704] = {
+                "asset": self.tinyman_clients[self.get_clidex()].fetch_asset(31566704),
+                "decimals": self.algod_clients[self.get_clidex()].asset_info(31566704)["params"]["decimals"]
+            }
+            self.rates[31566704] = dict()
+            for asset in self.rates:
+                self.rates[asset][31566704] = {
+                    "rate": None,
+                    "active": False
+                }
+                self.rates[31566704][asset] = {
+                    "rate": None,
+                    "active": False
+                }
+
         # Turn on USDC -> Asset rates for all assets
         for asset in self.rates[31566704]:
             if asset != 31566704:
@@ -280,6 +311,49 @@ class azazello:
         # Return list of clients
         return clients
 
+    # Load model from json
+    def load_model_from_json(self):
+
+        # Open JSON file
+        with open(self.model_file, 'r') as fp:
+            onett = json.load(fp)
+
+        # Load in Tengus
+        self.tengus = []
+        for tt in onett['model']:
+            self.add_tengu(
+                asset1_id=tt["a1"], asset2_id=tt["a2"],
+                swapmin=tt["swapmin"], swapmax=tt["swapmax"],
+                alpha=tt["alpha"], beta=tt["beta"], gamma=tt["gamma"]
+            )
+            self.tengus[len(self.tengus) - 1].set_baseline(tt["a1toa2_baseline"], tt["a2toa1_baseline"])
+
+    # Save model to json
+    def save_model_to_json(self):
+
+        # Init an empty model object
+        onett = {"model": []}
+
+        # Write Tengus to model
+        for tt in self.tengus:
+            onett["model"].append(
+                {
+                "a1": tt.a1,
+                "a2": tt.a2,
+                "alpha": tt.alpha,
+                "beta": tt.beta,
+                "gamma": tt.gamma,
+                "swapmin": tt.swapmin,
+                "swapmax": tt.swapmax,
+                "a1toa2_baseline": tt.a1toa2_baseline,
+                "a2toa1_baseline": tt.a2toa1_baseline
+                }
+            )
+
+        # Save to JSON
+        with open(self.model_file, 'w') as fp:
+            json.dump(onett, fp)
+
     # Counter function; Increments Index and Returns Value
     def get_clidex(self):
         self.clidex = self.clidex + 1
@@ -289,7 +363,11 @@ class azazello:
         # Return Index Value
         return self.clidex
 
-
+# TENGU MODEL
+# Handle individual ASA pair swaps
+# Swaps calculated as logistic functions bounded by min(beta*swapmax, swapmin) and swapmax
+#   Swap excuted after a percent change of alpha is reached
+#   Swap function shape is defined by alpha, beta, and gamma parameters
 class tengu:
 
     def __init__(self,
@@ -367,7 +445,3 @@ class tengu:
     def heaviside(self, x):
         if x > self.alpha: return 1
         else: return 0
-
-# Run with default settings
-aa = azazello()
-aa.run()
