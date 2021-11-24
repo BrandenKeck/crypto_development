@@ -429,10 +429,7 @@ class saci:
         self.swapforward = 0
         self.swapbackward = 0
         self.directionality = 0
-        self.price_historian = {
-            "fwd": [],
-            "bkwd": []
-        }
+        self.skip_step = 0
 
         # Establish Baselines
         self.a1a2_baseline = 0
@@ -446,46 +443,60 @@ class saci:
         a1_to_a2, a2_to_a1,
         usdc_to_a1, usdc_to_a2):
 
-        # Update Stored Price History
-        self.update_price_historian(a1_to_a2, a2_to_a1)
-        if len(self.price_historian["fwd"]) < self.ndt or len(self.price_historian["bkwd"]) < self.ndt: return
+        # Check Skip Step
+        if self.skipper():
 
-        # Update Baseline Changes
-        self.a1a2_baseline_change = (a1_to_a2 - self.a1a2_baseline) / self.a1a2_baseline
-        self.a2a1_baseline_change = (a2_to_a1 - self.a2a1_baseline) / self.a2a1_baseline
+            # Update Baseline Changes
+            self.a1a2_baseline_change = (a1_to_a2 - self.a1a2_baseline) / self.a1a2_baseline
+            self.a2a1_baseline_change = (a2_to_a1 - self.a2a1_baseline) / self.a2a1_baseline
 
-        # Calculate Forward Swap
-        self.swapforward = 0
-        heaviside_forward = self.heaviside(self.a1a2_baseline_change)
-        logistic_forward = self.modified_logistic(self.a1a2_baseline_change)
-        minswap_forward = self.swapmin * usdc_to_a1
-        self.swapforward = heaviside_forward * logistic_forward * (self.swapmax * usdc_to_a1)
-        if self.swapforward < minswap_forward or a1_available < self.swapforward: self.swapforward = 0
+            # Calculate Forward Swap
+            self.swapforward = 0
+            heaviside_forward = self.heaviside(self.a1a2_baseline_change)
+            logistic_forward = self.modified_logistic(self.a1a2_baseline_change)
+            minswap_forward = self.swapmin * usdc_to_a1
+            self.swapforward = heaviside_forward * logistic_forward * (self.swapmax * usdc_to_a1)
+            if self.swapforward < minswap_forward or a1_available < self.swapforward: self.swapforward = 0
 
-        # Calculate Backward Swap
-        self.swapbackward = 0
-        heaviside_backward = self.heaviside(self.a2a1_baseline_change)
-        logistic_backward = self.modified_logistic(self.a2a1_baseline_change)
-        minswap_backward = self.swapmin * usdc_to_a2
-        self.swapbackward = heaviside_backward * logistic_backward * (self.swapmax * usdc_to_a2)
-        if self.swapbackward < minswap_backward or a2_available < self.swapbackward: self.swapbackward = 0
+            # Calculate Backward Swap
+            self.swapbackward = 0
+            heaviside_backward = self.heaviside(self.a2a1_baseline_change)
+            logistic_backward = self.modified_logistic(self.a2a1_baseline_change)
+            minswap_backward = self.swapmin * usdc_to_a2
+            self.swapbackward = heaviside_backward * logistic_backward * (self.swapmax * usdc_to_a2)
+            if self.swapbackward < minswap_backward or a2_available < self.swapbackward: self.swapbackward = 0
 
-    # Update Stored Price History
-    def update_price_historian(self, a1_to_a2, a2_to_a1):
-        # Forward Update
-        self.price_historian["fwd"].append(a1_to_a2)
-        if len(self.price_historian["fwd"]) > self.ndt: self.price_historian["fwd"].pop(0)
-        # Backward Update
-        self.price_historian["bkwd"].append(a2_to_a1)
-        if len(self.price_historian["fwd"]) > self.ndt: self.price_historian["fwd"].pop(0)
+    # Skip step counter function
+    def skipper(self):
+
+        # Increment Counter
+        self.skip_step = self.skip_step + 1
+
+        # Return True if Counter Complete
+        if self.skip_step >= self.ndt:
+            self.skip_step = 0
+            return True
+
+        # Return False if Skip Step
+        return False
 
     # Update baseline information
-    def set_baseline(self, a1toa2, a2toa1):
+    def set_baseline(self, a1toa2, a2toa1, fwd=False, bkwd=False):
         self.a1a2_baseline = a1toa2
         self.a2a1_baseline = a2toa1
+        if fwd:
+            if self.directionality < 0: self.directionality = 0
+            else: self.directionality = self.directionality + 1
+        if bkwd:
+            if self.directionality > 0: self.directionality = 0
+            else: self.directionality = self.directionality - 1
 
     # Simple Logistic Eqn Implementation
     def modified_logistic(self, x):
+        if self.directionality != 0:
+
+        else:
+            
         return 1 / (1 + ((1 - self.beta) / self.beta)**((x - self.gamma)/(self.alpha - self.gamma)))
 
     # Simple Heaviside Implementation
