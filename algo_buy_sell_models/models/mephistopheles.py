@@ -492,11 +492,9 @@ class saci:
             else: self.directionality = self.directionality - 1
 
     # Simple Logistic Eqn Implementation
-    def modified_logistic(self, x):
-        if self.directionality != 0:
+    def modified_logistic(self, x, scaler=0):
+        aa =
 
-        else:
-            
         return 1 / (1 + ((1 - self.beta) / self.beta)**((x - self.gamma)/(self.alpha - self.gamma)))
 
     # Simple Heaviside Implementation
