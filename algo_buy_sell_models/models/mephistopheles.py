@@ -369,33 +369,63 @@ class mephistopheles:
 #   Swap function shape is defined by alpha, beta, and gamma parameters
 class tengu:
 
-    def __init__(self,
-                asset1, asset2,       # Assets Settings
-                a1a2bl, a2a1bl,       # Initial Baselines
-                swapmin, swapmax,     # Swap Scale (in USD)
-                alpha, beta, gamma,   # Model Shape Params
-                ):
+    def __init__(self, asset1, asset2,
+                tengu_json=dict(), default_model=True):
 
         # Store Asset IDs
         self.a1 = asset1
         self.a2 = asset2
 
         # List of Swap Baselines
-        self.sacis = dict()
+        self.sacis = []
+
+        # Quick creation for models / load from file / from scratch with default settings
+        if tengu_json:
+            self.load_tengu_from_json(tengu_json)
+        elif default_model:
+            self.add_saci(0, 31566704) # ALGO / USDC
+            self.add_tengu(0, 226701642) # ALGO / YLDY
+            self.add_tengu(0, 27165954) # ALGO / PLANETS
+            self.add_tengu(0, 287867876) # ALGO / OPUL
+            self.add_tengu(230946361, 31566704) # GEMS / USDC
+            self.add_tengu(0, 230946361) # ALGO / GEMS
+            self.add_tengu(287867876, 31566704) # OPUL / USDC
+            self.add_tengu(0, 300208676) # ALGO / SMILE
 
     # Add a new baseline for the swap pair
-    def add_saci(self, swapmin=0, swapmax=600, alpha=0.030, beta=0.025, gamma=0.800):
-        pass
+    def add_saci(self, swapmin=0, swapmax=600,
+                    alpha=0.030, beta=0.025, gamma=0.800,
+                    ascale=0.2, bscale=0.1, gscale=0.1,
+                    ndt = 1):
+
+        # Add Saci baseline to Tengu model
+        self.sacis.append(
+                    saci(
+                        swapmin, swapmax,
+                        alpha, beta, gamma,
+                        ascale, bscale, gscale,
+                        ndt
+                    )
+                )
 
     # Update baseline models
-    def update_saci(self):
+    def update_saci(self,
+                    a1_available, a2_available,
+                    a1_to_a2, a2_to_a1,
+                    usdc_to_a1, usdc_to_a2):
 
         # Loop over all baselines
         for ss in self.sacis:
-            pass
+            ss.update(a1_available, a2_available,
+                        a1_to_a2, a2_to_a1,
+                        usdc_to_a1, usdc_to_a2)
 
     # Set baseline after an executed swap
     def set_saci(self, id):
+        pass
+
+    # Load item from json
+    def load_tengu_from_json(self, tengu_json):
         pass
 
 
@@ -416,13 +446,13 @@ class saci:
         self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
+        self.ascale = alpha_scaling
+        self.bscale = beta_scaling
+        self.gscale = gamma_scaling
 
         # Swap amount settings
         self.swapmin = swapmin
         self.swapmax = swapmax
-        self.ascale = alpha_scaling
-        self.bscale = beta_scaling
-        self.gscale = gamma_scaling
         self.ndt = num_timesteps
 
         # Actual System State
@@ -452,16 +482,20 @@ class saci:
 
             # Calculate Forward Swap
             self.swapforward = 0
-            heaviside_forward = self.heaviside(self.a1a2_baseline_change)
-            logistic_forward = self.modified_logistic(self.a1a2_baseline_change)
+            fwd_factor = 0
+            if self.directionality > 0: fwd_factor = np.abs(self.directionality)
+            heaviside_forward = self.heaviside(self.a1a2_baseline_change, fwd_factor)
+            logistic_forward = self.modified_logistic(self.a1a2_baseline_change, fwd_factor)
             minswap_forward = self.swapmin * usdc_to_a1
             self.swapforward = heaviside_forward * logistic_forward * (self.swapmax * usdc_to_a1)
             if self.swapforward < minswap_forward or a1_available < self.swapforward: self.swapforward = 0
 
             # Calculate Backward Swap
             self.swapbackward = 0
-            heaviside_backward = self.heaviside(self.a2a1_baseline_change)
-            logistic_backward = self.modified_logistic(self.a2a1_baseline_change)
+            bkwd_factor = 0
+            if self.directionality < 0: bkwd_factor = np.abs(self.directionality)
+            heaviside_backward = self.heaviside(self.a2a1_baseline_change, bkwd_factor)
+            logistic_backward = self.modified_logistic(self.a2a1_baseline_change, bkwd_factor)
             minswap_backward = self.swapmin * usdc_to_a2
             self.swapbackward = heaviside_backward * logistic_backward * (self.swapmax * usdc_to_a2)
             if self.swapbackward < minswap_backward or a2_available < self.swapbackward: self.swapbackward = 0
@@ -480,24 +514,48 @@ class saci:
         # Return False if Skip Step
         return False
 
-    # Update baseline information
-    def set_baseline(self, a1toa2, a2toa1, fwd=False, bkwd=False):
+    # Update baseline information and set directionality
+    def set_baseline(self, a1toa2, a2toa1, is_fwd=True):
         self.a1a2_baseline = a1toa2
         self.a2a1_baseline = a2toa1
-        if fwd:
+        if is_fwd:
             if self.directionality < 0: self.directionality = 0
             else: self.directionality = self.directionality + 1
-        if bkwd:
+        else:
             if self.directionality > 0: self.directionality = 0
             else: self.directionality = self.directionality - 1
 
     # Simple Logistic Eqn Implementation
-    def modified_logistic(self, x, scaler=0):
-        aa =
+    def modified_logistic(self, x, scaling_iter=0):
 
-        return 1 / (1 + ((1 - self.beta) / self.beta)**((x - self.gamma)/(self.alpha - self.gamma)))
+        # Scale up parameters based on directionality
+        if scaling_iter > 0:
+            aa = self.parameter_scaling(self.alpha, self.ascale, scaling_iter)
+            bb = self.parameter_scaling(self.beta, self.bscale, scaling_iter)
+            gg = self.parameter_scaling(self.gamma, self.gscale, scaling_iter)
+        else:
+            aa = self.alpha
+            bb = self.beta
+            gg = self.gamma
+
+        # Return trade magnitude
+        return 1 / (1 + ((1 - bb) / bb)**((x - gg)/(aa - gg)))
 
     # Simple Heaviside Implementation
-    def heaviside(self, x):
+    def heaviside(self, x, scaling_iter=0):
+
+        # Scale up parameters based on directionality
+        if scaling_iter > 0: aa = self.parameter_scaling(self.alpha, self.ascale, scaling_iter)
+        else: aa = self.alpha
+
+        # Return Trade Boolean
         if x > self.alpha: return 1
         else: return 0
+
+    # Iterative parameter scaling function
+    def parameter_scaling(self, init_val, scaling, scaling_iter):
+
+        # Iteratively scale by a percent value
+        param_val = init_val
+        for iter in np.arange(scaling_iter):
+            param_val = param_val + scaling*param_val
