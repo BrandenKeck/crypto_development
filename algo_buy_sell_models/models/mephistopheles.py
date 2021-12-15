@@ -42,12 +42,12 @@ class mephistopheles:
         elif default_model:
             self.add_tengu(0, 31566704) # ALGO / USDC
             self.add_tengu(0, 226701642) # ALGO / YLDY
-            self.add_tengu(0, 27165954) # ALGO / PLANETS
+            #self.add_tengu(0, 27165954) # ALGO / PLANETS
             self.add_tengu(0, 287867876) # ALGO / OPUL
-            self.add_tengu(230946361, 31566704) # GEMS / USDC
-            self.add_tengu(0, 230946361) # ALGO / GEMS
+            #self.add_tengu(230946361, 31566704) # GEMS / USDC
+            #self.add_tengu(0, 230946361) # ALGO / GEMS
             self.add_tengu(287867876, 31566704) # OPUL / USDC
-            self.add_tengu(0, 300208676) # ALGO / SMILE
+            #self.add_tengu(0, 300208676) # ALGO / SMILE
 
     # Azazello gameloop
     def run(self):
@@ -76,33 +76,40 @@ class mephistopheles:
                 a1 = self.assets[tt.a1]["asset"]
                 a2 = self.assets[tt.a2]["asset"]
 
-                # attempt forward swap
-                if tt.swapforward > 0:
-                    swap_result = self.live_swap(
-                        amount = tt.swapforward,
-                        asset_in = a1,
-                        asset_out = a2,
-                        slips = self.slips
-                    )
-                    if swap_result != "SWAP FAILURE":
-                        a1toa2 = self.test_swap(1, a1, a2, 0)
-                        a2toa1 = self.test_swap(1, a2, a1, 0)
-                        tt.set_baseline(a1toa2, a2toa1)
-                    print(swap_result)
+                # Loop over asset pair baselines
+                for ss in tt.saci:
 
-                # attempt backward swap
-                if tt.swapbackward > 0:
-                    swap_result = self.live_swap(
-                        amount = tt.swapbackward,
-                        asset_in = a2,
-                        asset_out = a1,
-                        slips = self.slips
-                    )
-                    if swap_result != "SWAP FAILURE":
-                        a1toa2 = self.test_swap(1, a1, a2, 0)
-                        a2toa1 = self.test_swap(1, a2, a1, 0)
-                        tt.set_baseline(a1toa2, a2toa1)
-                    print(swap_result)
+                    # attempt forward swap
+                    if ss.swapforward > 0:
+                        swap_result = self.live_swap(
+                            amount = ss.swapforward,
+                            asset_in = a1,
+                            asset_out = a2,
+                            slips = self.slips
+                        )
+                        if swap_result != "SWAP FAILURE":
+                            print(f"SWAPPING {ss.swapforward} {a1.name}")
+                            a1toa2 = self.test_swap(1, a1, a2, 0)
+                            a2toa1 = self.test_swap(1, a2, a1, 0)
+                            ss.set_baseline(a1toa2, a2toa1, is_fwd=True)
+                        else:
+                            print("SWAP FAILURE")
+
+                    # attempt backward swap
+                    if ss.swapbackward > 0:
+                        swap_result = self.live_swap(
+                            amount = ss.swapbackward,
+                            asset_in = a2,
+                            asset_out = a1,
+                            slips = self.slips
+                        )
+                        if swap_result != "SWAP FAILURE":
+                            print(f"SWAPPING {ss.swapbackward} {a2.name}")
+                            a1toa2 = self.test_swap(1, a1, a2, 0)
+                            a2toa1 = self.test_swap(1, a2, a1, 0)
+                            ss.set_baseline(a1toa2, a2toa1, is_fwd=False)
+                        else:
+                            print("SWAP FAILURE")
 
                 # Print Update
                 print(f"{a1.name}->{a2.name} Baseline: {round(100*tt.a1toa2_baseline_change,2)}% | " +
@@ -151,6 +158,7 @@ class mephistopheles:
         # Retrieve Wallet Data
         wallet = self.algod_clients[self.get_clidex()].account_info(self.keys["address"])
 
+        # Loop over asset pairings and gather relevant information
         for tt in self.tengus:
 
             # Get available amounts and swap rates
@@ -168,10 +176,10 @@ class mephistopheles:
             else: usdctoa2 = self.rates[31566704][asset2_id]["rate"]
 
             # Update Tengu
-            tt.update(a1_available, a2_available, a1toa2, a2toa1, usdctoa1, usdctoa2)
+            tt.update_saci(a1_available, a2_available, a1toa2, a2toa1, usdctoa1, usdctoa2)
 
     # Function to add swap pairs to the simulation.  This can be done manually or with the default init flag.
-    def add_tengu(self, asset1_id, asset2_id, baselines):
+    def add_tengu(self, asset1_id, asset2_id, tengu_json=dict()):
 
         # Add assets to asset list if necessary
         if asset1_id > 0: a1dec = self.algod_clients[self.get_clidex()].asset_info(asset1_id)["params"]["decimals"]
@@ -233,7 +241,10 @@ class mephistopheles:
         self.rates[asset2_id][asset1_id]["rate"] = self.test_swap(1, self.assets[asset2_id]["asset"], self.assets[asset1_id]["asset"], 0)
 
         # Create a Tengu
-        self.tengus.append(tengu(asset1_id, asset2_id, self.rates[asset1_id][asset2_id]["rate"], self.rates[asset2_id][asset1_id]["rate"], swapmin, swapmax, alpha, beta, gamma))
+        if tengu_json:
+            self.tengus.append(tengu(asset1_id, asset2_id, tengu_json=tengu_json, default_model=False))
+        else:
+            self.tengus.append(tengu(asset1_id, asset2_id))
 
     # Function to turn on USDC -> Asset rates for all assets
     def set_usdc_active(self):
@@ -321,11 +332,10 @@ class mephistopheles:
         self.tengus = []
         for tt in onett['model']:
             self.add_tengu(
-                asset1_id=tt["a1"], asset2_id=tt["a2"],
-                swapmin=tt["swapmin"], swapmax=tt["swapmax"],
-                alpha=tt["alpha"], beta=tt["beta"], gamma=tt["gamma"]
+                asset1_id=tt["a1"],
+                asset2_id=tt["a2"],
+                tengu_json=tt["saci"]
             )
-            self.tengus[len(self.tengus) - 1].set_baseline(tt["a1toa2_baseline"], tt["a2toa1_baseline"])
 
     # Save model to json
     def save_model_to_json(self):
@@ -339,15 +349,27 @@ class mephistopheles:
                 {
                 "a1": tt.a1,
                 "a2": tt.a2,
-                "alpha": tt.alpha,
-                "beta": tt.beta,
-                "gamma": tt.gamma,
-                "swapmin": tt.swapmin,
-                "swapmax": tt.swapmax,
-                "a1toa2_baseline": tt.a1toa2_baseline,
-                "a2toa1_baseline": tt.a2toa1_baseline
+                "saci": []
                 }
             )
+            for ss in tt.saci:
+                onett["model"][len(onett["model"])-1]["saci"].append(
+                    {
+                        "alpha": ss.alpha,
+                        "beta": ss.beta,
+                        "gamma": ss.gamma,
+                        "ascale": ss.ascale,
+                        "bscale": ss.bscale,
+                        "gscale": ss.gscale,
+                        "swapmin": ss.swapmin,
+                        "swapmax": ss.swapmax,
+                        "ndt": ss.ndt,
+                        "directionality": ss.directionality,
+                        "skip_step": ss.skip_step,
+                        "a1toa2_baseline": ss.a1toa2_baseline,
+                        "a2toa1_baseline": ss.a2toa1_baseline
+                    }
+                )
 
         # Save to JSON
         with open(self.model_file, 'w') as fp:
@@ -361,6 +383,7 @@ class mephistopheles:
 
         # Return Index Value
         return self.clidex
+
 
 # TENGU MODEL
 # Handle individual ASA pair swaps
@@ -383,14 +406,13 @@ class tengu:
         if tengu_json:
             self.load_tengu_from_json(tengu_json)
         elif default_model:
-            self.add_saci(0, 31566704) # ALGO / USDC
-            self.add_tengu(0, 226701642) # ALGO / YLDY
-            self.add_tengu(0, 27165954) # ALGO / PLANETS
-            self.add_tengu(0, 287867876) # ALGO / OPUL
-            self.add_tengu(230946361, 31566704) # GEMS / USDC
-            self.add_tengu(0, 230946361) # ALGO / GEMS
-            self.add_tengu(287867876, 31566704) # OPUL / USDC
-            self.add_tengu(0, 300208676) # ALGO / SMILE
+            self.add_saci() # Default
+            self.add_saci(
+                alpha=0.1,
+                beta=0.1,
+                gamma=1.0,
+                ndt=10
+            ) # Longer Term
 
     # Add a new baseline for the swap pair
     def add_saci(self, swapmin=0, swapmax=600,
@@ -420,13 +442,23 @@ class tengu:
                         a1_to_a2, a2_to_a1,
                         usdc_to_a1, usdc_to_a2)
 
-    # Set baseline after an executed swap
-    def set_saci(self, id):
-        pass
-
     # Load item from json
     def load_tengu_from_json(self, tengu_json):
-        pass
+
+        # Load in Tengu
+        self.saci = []
+        for ss in tengu_json:
+            self.sacis.append(
+                saci(
+                    ss["swapmin"], ss["swapmax"],
+                    ss["alpha"], ss["beta"], ss["gamma"],
+                    ss["ascale"], ss["bscale"], ss["gscale"],
+                    ss["ndt"]
+                )
+            )
+            self.sacis[len(self.sacis)-1].set_baseline(self, ss["a1toa2_baseline"], ss["a2toa1_baseline"])
+            self.sacis[len(self.sacis)-1].directionality = ss["directionality"]
+            self.sacis[len(self.sacis)-1].skip_step = ss["skip_step"]
 
 
 # SACI UTILITY
