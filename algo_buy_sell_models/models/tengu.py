@@ -205,7 +205,7 @@ class tengu:
         # Load Tinyman Client for each Algod Client
         clients = []
         for client in self.algod_clients:
-            clients.append(TinymanClient(client, 350338509))
+            clients.append(TinymanClient(client, 552635992))
 
         # Return list of clients
         return clients
